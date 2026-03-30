@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhishGuard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════ HEADER ══════════════════════════════════════ -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L4 6v6c0 5.5 3.5 10.7 8 12 4.5-1.3 8-6.5 8-12V6l-8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">PhishGuard</span>
+    </div>
+
+    <div class="header-controls">
+      <!-- ON/OFF Toggle -->
+      <label class="toggle-wrap" title="Enable/Disable PhishGuard">
+        <input type="checkbox" id="enableToggle" checked />
+        <span class="toggle-track">
+          <span class="toggle-thumb"></span>
+        </span>
+      </label>
+      <!-- History Button -->
+      <button class="icon-btn" id="historyBtn" title="View history">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════ MAIN PANEL ══════════════════════════════════════ -->
+  <main id="mainView">
+
+    <!-- URL Display -->
+    <div class="url-bar">
+      <span class="url-label">SCANNING</span>
+      <p class="url-text" id="currentUrl">Loading…</p>
+    </div>
+
+    <!-- ── LOADING STATE ── -->
+    <div id="loadingState" class="state-card loading-card">
+      <div class="spinner-ring">
+        <div class="spinner-inner"></div>
+      </div>
+      <p class="state-title">Analyzing URL…</p>
+      <p class="state-sub">Running 15+ feature checks</p>
+    </div>
+
+    <!-- ── RESULT: SAFE ── -->
+    <div id="safeState" class="state-card safe-card hidden">
+      <div class="verdict-icon safe-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L4 6v6c0 5.5 3.5 10.7 8 12 4.5-1.3 8-6.5 8-12V6l-8-4z" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M9 12l2 2 4-4" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 class="verdict-label safe-label">SAFE</h2>
+      <p class="verdict-sub">No phishing indicators detected</p>
+    </div>
+
+    <!-- ── RESULT: PHISHING ── -->
+    <div id="phishingState" class="state-card phishing-card hidden">
+      <div class="verdict-icon phishing-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L4 6v6c0 5.5 3.5 10.7 8 12 4.5-1.3 8-6.5 8-12V6l-8-4z" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M12 8v4M12 16h.01" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="verdict-label phishing-label">PHISHING</h2>
+      <p class="verdict-sub">High-risk URL detected</p>
+    </div>
+
+    <!-- ── DISABLED STATE ── -->
+    <div id="disabledState" class="state-card disabled-card hidden">
+      <div class="verdict-icon disabled-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#6b7280" stroke-width="1.5"/>
+          <path d="M8 12h8" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="verdict-label disabled-label">PAUSED</h2>
+      <p class="verdict-sub">PhishGuard is currently disabled</p>
+    </div>
+
+    <!-- ── CONFIDENCE SCORE ── -->
+    <div class="confidence-section" id="confidenceSection">
+      <div class="confidence-header">
+        <span class="conf-label">CONFIDENCE</span>
+        <span class="conf-value" id="confValue">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <p class="conf-note" id="confNote">Model certainty in prediction</p>
+    </div>
+
+    <!-- ── FEATURE BREAKDOWN ── -->
+    <div class="features-section" id="featuresSection">
+      <h3 class="section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Feature Analysis
+      </h3>
+      <div class="features-grid" id="featuresGrid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- ── EXPLANATION ── -->
+    <div class="explanation-section" id="explanationSection">
+      <h3 class="section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 8h.01M12 12v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Why was this flagged?
+      </h3>
+      <p class="explanation-text" id="explanationText">—</p>
+    </div>
+
+    <!-- ── ACTION BUTTONS ── -->
+    <div class="actions-row" id="actionsRow">
+      <button class="btn btn-ghost" id="recheckBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Re-check
+      </button>
+      <button class="btn btn-danger hidden" id="warnBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Inject Warning
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════════ HISTORY PANEL ══════════════════════════════════════ -->
+  <div id="historyView" class="hidden">
+    <div class="panel-header">
+      <button class="back-btn" id="backBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back
+      </button>
+      <h2 class="panel-title">Scan History</h2>
+      <button class="icon-btn danger" id="clearHistoryBtn" title="Clear history">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div id="historyList" class="history-list">
+      <!-- Populated by JS -->
+    </div>
+    <p id="historyEmpty" class="history-empty hidden">No scans recorded yet.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════ FOOTER ══════════════════════════════════════ -->
+  <footer class="footer">
+    <span class="footer-text">v1.0 · ML-powered protection</span>
+    <span class="footer-dot"></span>
+    <span class="footer-status" id="footerStatus">Connected</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
