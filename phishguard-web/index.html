@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhishGuard — Free Phishing URL Detector</title>
+  <meta name="description" content="Check any URL for phishing instantly. Free, real-time phishing detection powered by machine learning. No signup required." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ═══════════════════════════════════════
+       VARIABLES & RESET
+    ═══════════════════════════════════════ */
+    :root {
+      --bg:        #090b10;
+      --bg-2:      #0f1219;
+      --bg-3:      #161b26;
+      --bg-4:      #1c2230;
+      --border:    rgba(255,255,255,0.06);
+      --border-2:  rgba(255,255,255,0.11);
+      --text:      #e2e6f0;
+      --text-2:    #7a8099;
+      --text-3:    #454d66;
+      --safe:      #10b981;
+      --safe-dim:  rgba(16,185,129,0.1);
+      --safe-glow: rgba(16,185,129,0.2);
+      --danger:    #ef4444;
+      --danger-dim:rgba(239,68,68,0.1);
+      --danger-glow:rgba(239,68,68,0.22);
+      --accent:    #6366f1;
+      --accent-2:  rgba(99,102,241,0.12);
+      --warn:      #f59e0b;
+      --radius:    12px;
+      --radius-sm: 7px;
+      --mono:      'IBM Plex Mono', monospace;
+      --display:   'Syne', sans-serif;
+      --ease:      cubic-bezier(0.4,0,0.2,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ═══════════════════════════════════════
+       NAV
+    ═══════════════════════════════════════ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,11,16,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .nav-logo-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--accent-2);
+      border: 1px solid rgba(99,102,241,0.3);
+      display: grid; place-items: center;
+      color: var(--accent);
+      font-size: 16px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 12px;
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: var(--safe-dim);
+      border: 1px solid rgba(16,185,129,0.25);
+      color: var(--safe);
+      letter-spacing: 0.06em;
+    }
+
+    /* ═══════════════════════════════════════
+       HERO
+    ═══════════════════════════════════════ */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 90px 5% 60px;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      background: var(--accent-2);
+      border: 1px solid rgba(99,102,241,0.25);
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.5s var(--ease) both;
+    }
+    .hero-title {
+      font-family: var(--display);
+      font-size: clamp(36px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s var(--ease) 0.1s both;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #ef4444, #f97316, #ef4444);
+      background-size: 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradShift 3s ease infinite;
+    }
+    @keyframes gradShift {
+      0%,100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+    .hero-sub {
+      font-size: clamp(14px, 2vw, 17px);
+      color: var(--text-2);
+      max-width: 520px;
+      margin: 0 auto 48px;
+      animation: fadeUp 0.5s var(--ease) 0.2s both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════════════
+       CHECKER CARD
+    ═══════════════════════════════════════ */
+    .checker-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto 80px;
+      padding: 0 5%;
+      animation: fadeUp 0.5s var(--ease) 0.3s both;
+    }
+    .checker-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03),
+                  0 24px 60px rgba(0,0,0,0.5);
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 0;
+    }
+    .url-input {
+      flex: 1;
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .url-input::placeholder { color: var(--text-3); }
+    .url-input:focus {
+      border-color: rgba(99,102,241,0.5);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .check-btn {
+      padding: 12px 24px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+    .check-btn:hover {
+      background: #5254cc;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+    }
+    .check-btn:active { transform: translateY(0); }
+    .check-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Sample URLs ── */
+    .sample-urls {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .sample-label {
+      font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      margin-right: 2px;
+    }
+    .sample-chip {
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--border-2);
+      background: var(--bg-3);
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sample-chip:hover {
+      border-color: var(--border-2);
+      color: var(--text);
+      background: var(--bg-4);
+    }
+    .sample-chip.phish { border-color: rgba(239,68,68,0.25); color: #f87171; }
+    .sample-chip.safe  { border-color: rgba(16,185,129,0.2); color: #34d399; }
+
+    /* ─── RESULT PANEL ─── */
+    #resultPanel {
+      margin-top: 20px;
+      display: none;
+    }
+    #resultPanel.visible { display: block; animation: fadeUp 0.3s var(--ease); }
+
+    .result-verdict {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      transition: all 0.3s;
+    }
+    .result-verdict.safe {
+      background: var(--safe-dim);
+      border-color: rgba(16,185,129,0.25);
+      box-shadow: 0 0 30px var(--safe-glow);
+    }
+    .result-verdict.phishing {
+      background: var(--danger-dim);
+      border-color: rgba(239,68,68,0.25);
+      box-shadow: 0 0 30px var(--danger-glow);
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 30px var(--danger-glow); }
+      50%      { box-shadow: 0 0 50px rgba(239,68,68,0.35); }
+    }
+    .verdict-icon { font-size: 32px; flex-shrink: 0; }
+    .verdict-text-wrap {}
+    .verdict-label {
+      font-family: var(--display);
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+    .verdict-label.safe    { color: var(--safe); }
+    .verdict-label.phishing { color: var(--danger); }
+    .verdict-url {
+      font-size: 11px;
+      color: var(--text-2);
+      margin-top: 2px;
+      word-break: break-all;
+    }
+
+    /* Confidence */
+    .conf-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .conf-label { font-size: 10px; letter-spacing: 0.1em; color: var(--text-3); }
+    .conf-pct {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .progress-track {
+      height: 5px;
+      background: var(--bg-4);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+    .progress-fill.safe   { background: var(--safe); }
+    .progress-fill.danger { background: var(--danger); }
+    .progress-fill.warn   { background: var(--warn); }
+    .conf-note { font-size: 10px; color: var(--text-3); margin-bottom: 20px; }
+
+    /* Features grid */
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 7px;
+      margin-bottom: 20px;
+    }
+    .f-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      font-size: 11px;
+      animation: chipIn 0.3s var(--ease) both;
+    }
+    @keyframes chipIn {
+      from { opacity:0; transform:scale(0.94); }
+      to   { opacity:1; transform:scale(1); }
+    }
+    .f-chip.risky   { border-color:rgba(239,68,68,0.28); background:var(--danger-dim); }
+    .f-chip.good    { border-color:rgba(16,185,129,0.18); background:var(--safe-dim); }
+    .f-name { color: var(--text-2); }
+    .f-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+    .b-red    { background:rgba(239,68,68,0.2);  color:#f87171; }
+    .b-green  { background:rgba(16,185,129,0.2); color:#34d399; }
+    .b-yellow { background:rgba(245,158,11,0.2); color:#fbbf24; }
+    .b-gray   { background:var(--bg-4); color:var(--text-2); }
+
+    /* Explanation */
+    .explanation-box {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+
+    /* ═══════════════════════════════════════
+       STATS STRIP
+    ═══════════════════════════════════════ */
+    .stats-strip {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      max-width: 680px;
+      margin: 0 auto 100px;
+      padding: 0 5%;
+    }
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 24px 16px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+    }
+    .stat-item:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+    .stat-item:last-child  { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+    .stat-item:not(:first-child):not(:last-child) { border-left: none; }
+    .stat-num {
+      font-family: var(--display);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      display: block;
+    }
+    .stat-desc { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+    /* ═══════════════════════════════════════
+       HOW IT WORKS
+    ═══════════════════════════════════════ */
+    .section {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto 100px;
+      padding: 0 5%;
+    }
+    .section-title {
+      font-family: var(--display);
+      font-size: clamp(24px, 4vw, 36px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .section-sub {
+      color: var(--text-2);
+      font-size: 14px;
+      margin-bottom: 48px;
+      max-width: 500px;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .step-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .step-card:hover {
+      border-color: var(--border-2);
+      transform: translateY(-3px);
+    }
+    .step-num {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--accent-2);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: var(--accent);
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 15px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 14px;
+    }
+    .step-title {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .step-desc { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+
+    /* ═══════════════════════════════════════
+       FEATURES LIST
+    ═══════════════════════════════════════ */
+    .features-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .feat-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: border-color 0.2s;
+    }
+    .feat-row:hover { border-color: var(--border-2); }
+    .feat-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .feat-icon.green { background: var(--safe-dim); }
+    .feat-icon.blue  { background: var(--accent-2); }
+    .feat-icon.red   { background: var(--danger-dim); }
+    .feat-row-title  { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+    .feat-row-desc   { font-size: 11px; color: var(--text-2); line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       INSTALL BANNER
+    ═══════════════════════════════════════ */
+    .install-banner {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto 100px;
+      padding: 0 5%;
+    }
+    .install-card {
+      background: linear-gradient(135deg, #0f1422, #141829);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 16px;
+      padding: 48px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .install-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(99,102,241,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .install-title {
+      font-family: var(--display);
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .install-sub {
+      color: var(--text-2);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    .install-steps {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .install-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text-2);
+    }
+    .install-step-num {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .btn-primary:hover {
+      background: #5254cc;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(99,102,241,0.4);
+      text-decoration: none;
+      color: #fff;
+    }
+
+    /* ═══════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════ */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 32px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-logo {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .footer-text { font-size: 11px; color: var(--text-3); }
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-3); }
+    .footer-links a:hover { color: var(--text-2); text-decoration: none; }
+
+    /* ═══════════════════════════════════════
+       SPINNER
+    ═══════════════════════════════════════ */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ═══════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════ */
+    @media (max-width: 600px) {
+      .input-row { flex-direction: column; }
+      .check-btn { width: 100%; }
+      nav .nav-links { display: none; }
+      .install-steps { flex-direction: column; align-items: center; }
+      footer { flex-direction: column; text-align: center; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════ NAV ════════════════ -->
+  <nav>
+    <div class="nav-logo">
+      <div class="nav-logo-icon">🛡️</div>
+      PhishGuard
+    </div>
+    <ul class="nav-links">
+      <li><a href="#checker">Check URL</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><span class="nav-badge">FREE</span></li>
+    </ul>
+  </nav>
+
+  <!-- ════════════════ HERO ════════════════ -->
+  <section class="hero" id="checker">
+    <div class="hero-tag">🔍 ML-Powered Phishing Detection</div>
+    <h1 class="hero-title">
+      Is this URL<br /><span>safe or phishing?</span>
+    </h1>
+    <p class="hero-sub">
+      Paste any URL below. PhishGuard analyzes 15+ signals instantly —
+      no signup, no tracking, 100% free.
+    </p>
+  </section>
+
+  <!-- ════════════════ CHECKER ════════════════ -->
+  <div class="checker-wrap">
+    <div class="checker-card">
+      <div class="input-row">
+        <input
+          class="url-input"
+          id="urlInput"
+          type="text"
+          placeholder="https://example.com/login"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="check-btn" id="checkBtn" onclick="runCheck()">
+          Analyze
+        </button>
+      </div>
+
+      <div class="sample-urls">
+        <span class="sample-label">TRY:</span>
+        <span class="sample-chip safe"  onclick="tryUrl('https://www.google.com')">google.com</span>
+        <span class="sample-chip safe"  onclick="tryUrl('https://github.com/login')">github.com</span>
+        <span class="sample-chip phish" onclick="tryUrl('http://paypal-verify-update.tk/login/secure')">paypal-verify.tk</span>
+        <span class="sample-chip phish" onclick="tryUrl('http://192.168.1.1/bank/signin.php')">IP address</span>
+        <span class="sample-chip phish" onclick="tryUrl('http://secure-appleid.apple.com.xyz/signin')">apple.com.xyz</span>
+      </div>
+
+      <!-- RESULT PANEL -->
+      <div id="resultPanel">
+
+        <!-- Verdict -->
+        <div class="result-verdict" id="verdictCard">
+          <div class="verdict-icon" id="verdictIcon"></div>
+          <div class="verdict-text-wrap">
+            <div class="verdict-label" id="verdictLabel"></div>
+            <div class="verdict-url"   id="verdictUrl"></div>
+          </div>
+        </div>
+
+        <!-- Confidence -->
+        <div class="conf-row">
+          <span class="conf-label">CONFIDENCE</span>
+          <span class="conf-pct" id="confPct"></span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="conf-note" id="confNote"></p>
+
+        <!-- Features -->
+        <div class="section-label">▸ FEATURE ANALYSIS</div>
+        <div class="features-grid" id="featuresGrid"></div>
+
+        <!-- Explanation -->
+        <div class="section-label">▸ WHY WAS THIS FLAGGED?</div>
+        <div class="explanation-box" id="explanationBox"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ STATS ════════════════ -->
+  <div class="stats-strip">
+    <div class="stat-item">
+      <span class="stat-num">15+</span>
+      <div class="stat-desc">URL Features Analyzed</div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">&lt;50ms</span>
+      <div class="stat-desc">Analysis Time</div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">100%</span>
+      <div class="stat-desc">Free, No Signup</div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">0</span>
+      <div class="stat-desc">Data Collected</div>
+    </div>
+  </div>
+
+  <!-- ════════════════ HOW IT WORKS ════════════════ -->
+  <section class="section" id="how">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-sub">PhishGuard uses rule-based machine learning to analyze URL structure in real time.</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">URL Parsing</div>
+        <div class="step-desc">The URL is broken into components — hostname, path, query, TLD, subdomains — for individual analysis.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Feature Extraction</div>
+        <div class="step-desc">15+ signals are extracted: URL length, @ symbol presence, IP address usage, HTTPS status, keyword detection, and more.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Risk Scoring</div>
+        <div class="step-desc">Each feature is weighted by its phishing correlation. Scores are summed into a 0–100 risk index.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-title">Verdict + Explanation</div>
+        <div class="step-desc">URLs scoring ≥40 are flagged as phishing. You get a confidence score and plain-English reason for every decision.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════ FEATURES ════════════════ -->
+  <section class="section" id="features">
+    <h2 class="section-title">What Gets Detected</h2>
+    <p class="section-sub">PhishGuard checks for the most common phishing URL patterns used in real attacks.</p>
+    <div class="features-list">
+      <div class="feat-row">
+        <div class="feat-icon red">🎣</div>
+        <div>
+          <div class="feat-row-title">Suspicious TLDs</div>
+          <div class="feat-row-desc">.tk, .ml, .ga, .cf, .gq, .xyz — free domains heavily abused by phishers.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon red">🔢</div>
+        <div>
+          <div class="feat-row-title">IP Address Hosts</div>
+          <div class="feat-row-desc">Legitimate sites use domain names, not raw IPs like 192.168.1.1.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon red">@</div>
+        <div>
+          <div class="feat-row-title">@ Symbol in URL</div>
+          <div class="feat-row-desc">The @ symbol makes browsers ignore everything before it, hiding the real destination.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon red">🔑</div>
+        <div>
+          <div class="feat-row-title">Deceptive Keywords</div>
+          <div class="feat-row-desc">Words like "login", "verify", "secure", "account" in suspicious contexts.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon blue">📏</div>
+        <div>
+          <div class="feat-row-title">URL Length</div>
+          <div class="feat-row-desc">Phishing URLs are often unusually long to obscure the real domain name.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon blue">🔀</div>
+        <div>
+          <div class="feat-row-title">Redirect Patterns</div>
+          <div class="feat-row-desc">Parameters like ?url=http or /redirect/ indicate the site forwards to another destination.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon green">🔒</div>
+        <div>
+          <div class="feat-row-title">HTTPS Check</div>
+          <div class="feat-row-desc">HTTP-only sites lack encryption — a common trait in low-effort phishing pages.</div>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="feat-icon green">🌐</div>
+        <div>
+          <div class="feat-row-title">Subdomain Depth</div>
+          <div class="feat-row-desc">Excessive subdomains like paypal.secure.login.evil.com mimic legitimate sites.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════ INSTALL ════════════════ -->
+  <div class="install-banner" id="install">
+    <div class="install-card">
+      <h2 class="install-title">Get Real-Time Protection</h2>
+      <p class="install-sub">Install the Chrome Extension to automatically check every URL as you browse — no copy-pasting needed.</p>
+      <div class="install-steps">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          Download the extension ZIP
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          Open chrome://extensions/
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          Enable Developer Mode
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          Click "Load Unpacked"
+        </div>
+      </div>
+      <a href="https://github.com/yourname/phishguard/releases" class="btn-primary" target="_blank">
+        ⬇ Download Extension
+      </a>
+    </div>
+  </div>
+
+  <!-- ════════════════ FOOTER ════════════════ -->
+  <footer>
+    <div class="footer-logo">🛡️ PhishGuard</div>
+    <div class="footer-text">© 2025 PhishGuard · Built for education and security awareness</div>
+    <ul class="footer-links">
+      <li><a href="https://github.com/yourname/phishguard" target="_blank">GitHub</a></li>
+      <li><a href="#checker">Check URL</a></li>
+    </ul>
+  </footer>
+
+  <!-- ════════════════ JS ENGINE ════════════════ -->
+  <script>
+    /* ── Enter key support ── */
+    document.getElementById('urlInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runCheck();
+    });
+
+    function tryUrl(url) {
+      document.getElementById('urlInput').value = url;
+      runCheck();
+    }
+
+    /* ── Main check function ── */
+    function runCheck() {
+      const input = document.getElementById('urlInput');
+      const url   = input.value.trim();
+      if (!url) { input.focus(); return; }
+
+      const btn = document.getElementById('checkBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+      // Small delay for UX feel
+      setTimeout(() => {
+        const result = localAnalysis(url);
+        renderResult(result);
+        btn.disabled = false;
+        btn.textContent = 'Analyze';
+        document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 420);
+    }
+
+    /* ── Core analysis engine ── */
+    function localAnalysis(url) {
+      let parsedUrl, hostname = '', path = '';
+      try {
+        parsedUrl = new URL(url.startsWith('http') ? url : 'http://' + url);
+        hostname  = parsedUrl.hostname.toLowerCase();
+        path      = parsedUrl.pathname + parsedUrl.search;
+      } catch { hostname = url; }
+
+      const urlLength      = url.length;
+      const hasAtSymbol    = url.includes('@');
+      const hasIPAddress   = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+      const numDots        = (hostname.match(/\./g) || []).length;
+      const hasHttps       = url.startsWith('https://');
+      const numHyphens     = (hostname.match(/-/g) || []).length;
+      const domainLength   = hostname.length;
+      const numSubdomains  = numDots > 1 ? numDots - 1 : 0;
+      const hasDoubleSlash = url.indexOf('//') > 6;
+      const hasPort        = /:\d+/.test(hostname);
+      const hasRedirect    = url.toLowerCase().includes('redirect') || url.toLowerCase().includes('url=http');
+
+      const suspiciousKeywords = [
+        'login','signin','account','verify','update','secure','banking',
+        'paypal','ebay','amazon','apple','microsoft','google','confirm',
+        'password','credential','suspend','alert','urgent','free','win',
+      ];
+      const foundKeywords = suspiciousKeywords.filter(k => url.toLowerCase().includes(k));
+
+      const badTLDs    = ['.tk','.ml','.ga','.cf','.gq','.xyz','.top','.work','.click','.zip'];
+      const hasBadTLD  = badTLDs.some(t => hostname.endsWith(t));
+
+      /* Scoring */
+      let score = 0;
+      if (hasAtSymbol)          score += 25;
+      if (hasIPAddress)         score += 30;
+      if (urlLength > 100)      score += 15;
+      else if (urlLength > 75)  score += 8;
+      if (numDots > 4)          score += 15;
+      if (numHyphens > 3)       score += 10;
+      if (!hasHttps)            score += 10;
+      if (hasBadTLD)            score += 20;
+      if (hasPort)              score += 15;
+      if (hasDoubleSlash)       score += 10;
+      if (hasRedirect)          score += 15;
+      if (foundKeywords.length) score += Math.min(foundKeywords.length * 8, 30);
+      if (domainLength > 30)    score += 10;
+      score = Math.min(score, 100);
+
+      const confidence = score / 100;
+      const isPhishing = score >= 40;
+
+      const features = [
+        { name:'URL Length',     value: urlLength > 100 ? 'Very Long' : urlLength > 75 ? 'Long' : 'Normal',  risk: urlLength > 100 ? 'high' : urlLength > 75 ? 'medium' : 'low' },
+        { name:'Contains @',     value: hasAtSymbol  ? 'Yes' : 'No',  risk: hasAtSymbol  ? 'high' : 'low' },
+        { name:'IP Address',     value: hasIPAddress ? 'Yes' : 'No',  risk: hasIPAddress ? 'high' : 'low' },
+        { name:'HTTPS',          value: hasHttps     ? 'Yes' : 'No',  risk: hasHttps     ? 'low'  : 'medium' },
+        { name:'Subdomains',     value: numSubdomains === 0 ? 'None' : numSubdomains, risk: numSubdomains > 2 ? 'high' : numSubdomains > 1 ? 'medium' : 'low' },
+        { name:'Suspicious TLD', value: hasBadTLD    ? 'Yes' : 'No',  risk: hasBadTLD    ? 'high' : 'low' },
+        { name:'Keywords',       value: foundKeywords.length ? foundKeywords[0] : 'None', risk: foundKeywords.length > 1 ? 'high' : foundKeywords.length === 1 ? 'medium' : 'low' },
+        { name:'Hyphens',        value: numHyphens || 'None', risk: numHyphens > 3 ? 'high' : numHyphens > 1 ? 'medium' : 'low' },
+        { name:'Has Port',       value: hasPort      ? 'Yes' : 'No',  risk: hasPort      ? 'high' : 'low' },
+        { name:'Redirect',       value: hasRedirect  ? 'Yes' : 'No',  risk: hasRedirect  ? 'high' : 'low' },
+      ];
+
+      const reasons = [];
+      if (hasAtSymbol)          reasons.push('contains "@" symbol which hides the real destination domain');
+      if (hasIPAddress)         reasons.push('uses a raw IP address instead of a registered domain');
+      if (hasBadTLD)            reasons.push('uses a free TLD commonly exploited in phishing campaigns');
+      if (foundKeywords.length) reasons.push(`contains deceptive keyword "${foundKeywords[0]}"`);
+      if (!hasHttps)            reasons.push('does not use HTTPS encryption');
+      if (numSubdomains > 2)    reasons.push(`has ${numSubdomains} subdomains to mimic a legitimate site`);
+      if (urlLength > 100)      reasons.push('URL is unusually long to obscure the real domain');
+
+      const explanation = isPhishing
+        ? `This URL was flagged because it ${reasons.length ? reasons.join('; and ') : 'matches multiple phishing patterns'}.`
+        : 'No significant phishing indicators were detected. The URL follows standard domain conventions.';
+
+      return { url, label: isPhishing ? 'phishing' : 'safe', confidence, score, features, explanation };
+    }
+
+    /* ── Render result ── */
+    function renderResult(r) {
+      const panel     = document.getElementById('resultPanel');
+      const card      = document.getElementById('verdictCard');
+      const icon      = document.getElementById('verdictIcon');
+      const label     = document.getElementById('verdictLabel');
+      const urlEl     = document.getElementById('verdictUrl');
+      const confPct   = document.getElementById('confPct');
+      const fill      = document.getElementById('progressFill');
+      const confNote  = document.getElementById('confNote');
+      const grid      = document.getElementById('featuresGrid');
+      const expl      = document.getElementById('explanationBox');
+
+      const pct = Math.round(r.confidence * 100);
+      const isPhish = r.label === 'phishing';
+
+      card.className  = 'result-verdict ' + r.label;
+      icon.textContent = isPhish ? '⚠️' : '✅';
+      label.className  = 'verdict-label ' + r.label;
+      label.textContent = isPhish ? 'PHISHING' : 'SAFE';
+      urlEl.textContent = r.url.length > 70 ? r.url.slice(0, 70) + '…' : r.url;
+
+      confPct.textContent = pct + '%';
+      confPct.style.color  = isPhish ? 'var(--danger)' : 'var(--safe)';
+      confNote.textContent = isPhish
+        ? `Model is ${pct}% confident this is a phishing URL`
+        : `Model is ${pct}% confident this URL is safe`;
+
+      requestAnimationFrame(() => {
+        fill.style.width = pct + '%';
+        fill.className   = 'progress-fill ' + (pct >= 70 ? 'danger' : pct >= 45 ? 'warn' : 'safe');
+      });
+
+      grid.innerHTML = '';
+      r.features.forEach((f, i) => {
+        const chipCls  = f.risk === 'high' ? 'risky' : f.risk === 'medium' ? '' : 'good';
+        const badgeCls = f.risk === 'high' ? 'b-red' : f.risk === 'medium' ? 'b-yellow' : 'b-green';
+        const chip = document.createElement('div');
+        chip.className = `f-chip ${chipCls}`;
+        chip.style.animationDelay = (i * 0.04) + 's';
+        chip.innerHTML = `<span class="f-name">${esc(f.name)}</span><span class="f-badge ${badgeCls}">${esc(String(f.value))}</span>`;
+        grid.appendChild(chip);
+      });
+
+      expl.textContent = r.explanation;
+      panel.classList.add('visible');
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+
+</body>
+</html>

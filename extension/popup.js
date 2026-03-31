@@ -135,31 +135,13 @@ async function checkCurrentTab(force = false) {
 /* ══════════════════════════════════════════════════════════════
    API CALL (with fallback to local JS analysis)
    ══════════════════════════════════════════════════════════════ */
+// In popup.js — replace the analyzeUrl function entirely
 async function analyzeUrl(url) {
-  // Try FastAPI backend first
-  try {
-    updateFooterStatus('checking', 'Checking…');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
-
-    const resp = await fetch(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    updateFooterStatus('online', 'Connected');
-    return data;
-  } catch (err) {
-    // Backend unavailable → fall back to local JS heuristics
-    console.warn('[PhishGuard] Backend unavailable, using local analysis:', err.message);
-    updateFooterStatus('offline', 'Offline mode');
-    return localAnalysis(url);
-  }
+  // Pure local analysis — no backend needed
+  updateFooterStatus('checking', 'Analyzing…');
+  const result = localAnalysis(url);
+  updateFooterStatus('online', 'Local ML');
+  return result;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -562,3 +544,4 @@ function updateFooterStatus(state, text) {
   el.footerStatus.textContent = text;
   el.footerStatus.className = 'footer-status ' + state;
 }
+

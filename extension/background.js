@@ -66,31 +66,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
    ANALYSIS (background context)
    ══════════════════════════════════════════════════════════════ */
 async function analyzeUrlBackground(url) {
-  // Check cache first
   const cached = await getCachedResult(url);
   if (cached) return cached;
 
-  // Try API
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    await cacheResult(url, data);
-    return data;
-  } catch {
-    // Fallback to local
-    const result = localAnalysisBackground(url);
-    await cacheResult(url, result);
-    return result;
-  }
+  const result = localAnalysisBackground(url);
+  await cacheResult(url, result);
+  return result;
 }
 
 /* ══════════════════════════════════════════════════════════════
