@@ -107,9 +107,9 @@ function localAnalysisBackground(url) {
 /* ══════════════════════════════════════════════════════════════
    BADGE MANAGEMENT
    ══════════════════════════════════════════════════════════════ */
-function updateBadge(tabId, label) {
+function updateBadge(tabId, label, confidence) {
   if (label === 'phishing') {
-    setBadgeDanger(tabId);
+    setBadgeDanger(tabId, confidence);
   } else {
     setBadgeSafe(tabId);
   }
@@ -120,8 +120,9 @@ function setBadgeSafe(tabId) {
   chrome.action.setBadgeBackgroundColor({ color: '#10b981', tabId });
 }
 
-function setBadgeDanger(tabId) {
-  chrome.action.setBadgeText({ text: '!', tabId });
+function setBadgeDanger(tabId, confidence) {
+  const pct = Math.round(confidence);
+  chrome.action.setBadgeText({ text: pct + '%', tabId });
   chrome.action.setBadgeBackgroundColor({ color: '#ef4444', tabId });
 }
 
