@@ -1,4 +1,4 @@
-# 🛡️ PhishGuard — Contributor & Project Guide
+# 🛡️ PhishGuard — Web App (Contributor & Project Guide)
 
 ---
 
@@ -6,45 +6,55 @@
 
 ### Description
 
-**PhishGuard** is a real-time phishing URL detection system that combines a Chrome Extension with a Streamlit web app, powered by machine learning. It automatically analyzes 15+ URL features to classify any website as **safe or phishing**, displaying a confidence score, feature breakdown, and plain-English explanation — all without sending data to any external server.
+PhishGuard Web App is a **real-time phishing URL detection system** built using Streamlit and machine learning. It allows users to analyze any URL and determine whether it is safe or malicious.
+
+The system extracts **15+ URL features** and provides:
+- Prediction (safe / phishing)
+- Confidence score
+- Feature breakdown
+- Plain-English explanation
+
+🚀 **Live Demo:**  
+https://phishguard-extension-pb9ahd84x4tbbu8djkrxqj.streamlit.app/
+
+---
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Chrome Extension** | HTML, CSS, JavaScript, Chrome Manifest V3 |
-| **Web App** | Python, Streamlit |
-| **Backend API** | Python, FastAPI, Uvicorn |
-| **ML Model** | scikit-learn (Random Forest, Gradient Boosting) |
-| **Feature Engineering** | NumPy, Pandas, Python `urllib` |
-| **Deployment** | Streamlit Cloud, GitHub Pages |
-| **Other Tools** | Docker (optional), pickle, pytest |
+| Layer            | Technology                          |
+|------------------|----------------------------------|
+| Web App          | Python, Streamlit                |
+| Backend API      | Python, FastAPI, Uvicorn         |
+| ML Model         | scikit-learn (Random Forest, GBM)|
+| Feature Engineering | NumPy, Pandas, urllib         |
+| Deployment       | Streamlit Cloud                  |
+| Other Tools      | pickle, pytest                   |
+
+---
 
 ### Current Features
 
-PhishGuard currently supports:
+PhishGuard Web App currently supports:
 
-- ✅ Real-time phishing detection as you browse (Chrome Extension)
-- ✅ Paste-and-check URL analyzer (Streamlit Web App)
-- ✅ 15+ feature extraction — URL length, @ symbol, IP address, TLD, keywords, entropy, and more
-- ✅ Confidence score with animated progress bar
-- ✅ Feature breakdown chips with 🔴🟡🟢 risk indicators
-- ✅ Plain-English explanation for every verdict
-- ✅ Extension badge color changes — 🟢 green (safe) / 🔴 red (phishing)
-- ✅ Warning banner injected into phishing pages
-- ✅ Scan history with timestamps (Extension + Web App)
-- ✅ Enable/disable toggle without uninstalling
-- ✅ 5-minute result cache to avoid redundant analysis
-- ✅ Offline fallback — works without backend using local JS heuristics
-- ✅ FastAPI backend with `/predict`, `/batch`, `/health` endpoints
+✅ Paste-and-check URL analyzer  
+✅ 15+ feature extraction (URL length, @ symbol, IP, entropy, etc.)  
+✅ Confidence score  
+✅ Feature breakdown with risk indicators  
+✅ Plain-English explanation  
+✅ Scan history with timestamps  
+✅ Fast API-based prediction  
+✅ Clean and responsive UI  
+
+---
 
 ### Target Users
 
 PhishGuard is built for:
-- **Everyday users** who want passive protection while browsing
-- **Security researchers** studying phishing URL patterns
-- **Students and developers** learning about ML-based threat detection
-- **Organizations** wanting a lightweight, deployable phishing checker
+
+- Everyday users checking suspicious links  
+- Students learning ML security applications  
+- Developers exploring phishing detection  
+- Security enthusiasts  
 
 ---
 
@@ -52,545 +62,300 @@ PhishGuard is built for:
 
 ### Module Overview
 
-| Module | Location | Purpose |
-|--------|----------|---------|
-| Chrome Extension UI | `extension/popup.html` + `popup.js` | Popup interface, result rendering, history, caching |
-| Extension Service Worker | `extension/background.js` | Tab monitoring, badge color management, auto-detection |
-| Page Warning Banner | `extension/content.js` | Injects phishing warning banner into the active page |
-| Streamlit Web App | `phishguard-web/streamlit_app.py` | Full web-based URL checker with UI, history, sidebar |
-| FastAPI Backend | `backend/main.py` | REST API serving ML predictions via `/predict` endpoint |
-| Feature Engineering | `backend/feature_engineering.py` | Extracts 23 URL features for ML model input |
-| ML Training Script | `backend/train_model.py` | Trains Random Forest + GBM, evaluates, saves `model.pkl` |
-| Extension Styles | `extension/styles.css` | Dark terminal aesthetic, animations, responsive design |
+| Module                | Location                          | Purpose |
+|----------------------|----------------------------------|--------|
+| Streamlit Web App    | phishguard-web/streamlit_app.py  | UI + user interaction |
+| FastAPI Backend      | backend/main.py                  | API for predictions |
+| Feature Engineering  | backend/feature_engineering.py   | Extract URL features |
+| ML Model             | backend/model.pkl                | Prediction model |
+| Training Script      | backend/train_model.py           | Model training |
+
+---
 
 ### Project Structure
 
 ```
 phishguard/
-├── extension/                  # Chrome Extension (Manifest V3)
-│   ├── manifest.json           # Permissions, background, content scripts
-│   ├── popup.html              # Extension popup UI
-│   ├── popup.js                # Rendering, API calls, history, caching
-│   ├── background.js           # Service worker, tab listener, badge
-│   ├── content.js              # Page-injected warning banner
-│   ├── styles.css              # Full dark UI styling
-│   └── icons/                  # Extension icons (16, 32, 48, 128px)
+├── backend/
+│   ├── main.py
+│   ├── feature_engineering.py
+│   ├── train_model.py
+│   ├── model.pkl
+│   └── requirements.txt
 │
-├── backend/                    # FastAPI ML Backend
-│   ├── main.py                 # API endpoints + CORS + prediction logic
-│   ├── feature_engineering.py  # 23 URL feature extractors
-│   ├── train_model.py          # ML training + evaluation script
-│   ├── model.pkl               # Trained model (generated by training)
-│   └── requirements.txt        # Python dependencies
+├── phishguard-web/
+│   ├── streamlit_app.py
+│   └── requirements.txt
 │
-├── phishguard-web/             # Streamlit Web App
-│   ├── streamlit_app.py        # Full Streamlit application
-│   └── requirements.txt        # Streamlit dependency
-│
-└── README.md                   # Project overview and setup guide
-```
-
-### Architecture Diagram
-
-```
-User browses a website
-        │
-        ▼
-extension/background.js     ←── Tab navigation detected
-        │
-        ├── Check chrome.storage cache (5-min TTL)
-        │
-        ├── HIT  → Use cached result immediately
-        │
-        └── MISS → POST { url } to FastAPI /predict
-                        │
-                        ├── feature_engineering.py
-                        │   extracts 23 features from URL
-                        │
-                        ├── model.pkl predicts
-                        │   { label, confidence, features[] }
-                        │
-                        └── Fallback: local JS heuristics
-                            if backend unavailable
-
-        ▼
-Update badge 🟢 / 🔴
-Save to history
-popup.js renders result UI
+└── README.md
 ```
 
 ---
 
-## 3. New Feature Ideas
+### Architecture Flow
 
-### Feature 1: WHOIS Domain Age Check
-
-**Problem it solves:**
-Newly registered domains (< 30 days old) are a strong phishing indicator. Currently PhishGuard only analyzes URL structure — adding domain age from WHOIS data would significantly improve accuracy.
-
-- **Difficulty Level:** Intermediate
-- **Estimated Effort:** 8–12 hours
-- **Modules Affected:**
-  - `backend/feature_engineering.py` — Add `domain_age_days` feature
-  - `backend/main.py` — Integrate WHOIS lookup into prediction pipeline
-  - `extension/popup.js` — Display domain age in feature chips
-  - `phishguard-web/streamlit_app.py` — Add domain age to feature grid
-
----
-
-### Feature 2: Screenshot + Visual Clone Detection
-
-**Problem it solves:**
-Some phishing sites copy the exact visual layout of legitimate sites (PayPal, Gmail, banks). URL analysis alone cannot catch these — a vision model comparing the screenshot to known legitimate pages would catch visual clones.
-
-- **Difficulty Level:** Advanced
-- **Estimated Effort:** 20–30 hours
-- **Modules Affected:**
-  - `extension/content.js` — Capture page screenshot using `html2canvas`
-  - `backend/main.py` — New `/predict-visual` endpoint
-  - `backend/visual_model.py` — Create new file for vision-based classification
-  - `extension/popup.js` — Show visual similarity score in result UI
+User enters URL  
+        │  
+        ▼  
+Streamlit App (UI)  
+        │  
+        ▼  
+POST request → FastAPI `/predict`  
+        │  
+        ├── Feature extraction  
+        ├── ML prediction  
+        └── Confidence + explanation  
+        │  
+        ▼  
+Result displayed in UI  
 
 ---
 
-### Feature 3: User Allowlist / Blocklist
-
-**Problem it solves:**
-Users may want to permanently trust certain domains (e.g., their company intranet) or permanently block domains they know are malicious. Currently there is no way to override the ML verdict.
-
-- **Difficulty Level:** Beginner–Intermediate
-- **Estimated Effort:** 6–10 hours
-- **Modules Affected:**
-  - `extension/popup.js` — Add "Always Trust" / "Always Block" buttons
-  - `extension/background.js` — Check allowlist/blocklist before running analysis
-  - `extension/popup.html` — Add allowlist management UI section
+## 3. High-Impact Feature Roadmap
 
 ---
 
-### Feature 4: Full Analytics Dashboard Page
+### 🚀 Feature 1: Real-Time Threat Intelligence Integration
 
-**Problem it solves:**
-The current history panel only shows a simple list. A dedicated dashboard page with charts would show users their browsing safety stats — how many phishing sites blocked, top risky domains, safety trend over time.
-
-- **Difficulty Level:** Intermediate
-- **Estimated Effort:** 10–14 hours
-- **Modules Affected:**
-  - `extension/dashboard.html` — Create new file for full-page dashboard
-  - `extension/dashboard.js` — Chart rendering using Chart.js (CDN)
-  - `extension/manifest.json` — Register dashboard as an extension page
-  - `extension/popup.html` — Add "Open Dashboard" button
+- Integrate Google Safe Browsing / PhishTank APIs  
+- Combine ML + API-based detection  
+- Return hybrid risk score  
 
 ---
 
-### Feature 5: Real Dataset Training (PhishTank Integration)
+### 🧠 Feature 2: Explainable AI (XAI) Dashboard
 
-**Problem it solves:**
-The current `train_model.py` uses only 24 sample URLs. Training on PhishTank's 50,000+ real phishing URLs and Tranco's top 1M legitimate domains would make the model production-grade with 95%+ accuracy.
-
-- **Difficulty Level:** Intermediate
-- **Estimated Effort:** 8–12 hours
-- **Modules Affected:**
-  - `backend/train_model.py` — Add dataset download + preprocessing pipeline
-  - `backend/feature_engineering.py` — Validate features work at scale
-  - `backend/data/` — Create new folder for dataset storage scripts
+- Show *why* a URL is phishing  
+- Highlight top contributing features  
+- Improve transparency  
 
 ---
 
-### Feature 6: Browser Sync Across Devices
+### 📊 Feature 3: User Risk Analytics Dashboard
 
-**Problem it solves:**
-Currently history and settings are stored only in `chrome.storage.local` — they disappear if the user switches computers or reinstalls Chrome. Using `chrome.storage.sync` would keep settings and allowlist synced across all the user's devices.
+- Total scans  
+- Safe vs phishing ratio  
+- Trends over time  
+- Risky domains  
 
-- **Difficulty Level:** Beginner
-- **Estimated Effort:** 3–5 hours
-- **Modules Affected:**
-  - `extension/popup.js` — Replace `chrome.storage.local` with `chrome.storage.sync` for settings
-  - `extension/background.js` — Sync enabled/disabled state across devices
+---
+
+### 🌍 Feature 4: Batch URL Scanner
+
+- Upload CSV of URLs  
+- Analyze all at once  
+- Download results  
+
+---
+
+### 🔐 Feature 5: Domain Reputation System
+
+- Maintain domain risk scores  
+- Track frequently flagged domains  
+
+---
+
+### ⚡ Feature 6: Real Dataset Training
+
+- Use PhishTank + Tranco datasets  
+- Improve accuracy  
+
+---
+
+### 🤖 Feature 7: Public REST API
+
+- Expose `/predict` endpoint  
+- Allow external integration  
 
 ---
 
 ## 4. Feature Implementation Pipeline
 
-### Pipeline for Feature 1: WHOIS Domain Age Check
+### WHOIS Domain Age Feature
 
-1. **Add WHOIS library to backend**
-   - Install `python-whois` in `backend/requirements.txt`
-   - Test it works for common TLDs
-
-2. **Extend feature extraction**
-   - Add `get_domain_age(hostname)` function in `feature_engineering.py`
-   - Return `domain_age_days` — handle exceptions for private WHOIS
-
-3. **Add to feature vector**
-   - Append `domain_age_days` to the numeric feature vector
-   - Retrain model with the new feature using `train_model.py`
-
-4. **Update API response**
-   - Add `domain_age` to the features list returned by `/predict`
-   - Add risk classification: `< 30 days = high`, `< 180 days = medium`
-
-5. **Update Extension UI**
-   - Add "Domain Age" chip to `popup.js` feature rendering
-   - Display as "2 days old" / "5 years old"
-
-6. **Update Streamlit App**
-   - Add domain age row to `streamlit_app.py` feature grid
-   - Show 🔴 if under 30 days, 🟢 if over 1 year
-
-7. **Testing**
-   - Test on known new phishing domains
-   - Handle rate limits from WHOIS servers gracefully
+1. Add WHOIS library  
+2. Extract domain age  
+3. Add to feature vector  
+4. Retrain model  
+5. Display in UI  
 
 ---
 
-### Pipeline for Feature 2: Allowlist / Blocklist
+### Dashboard Pipeline
 
-1. **Design storage schema**
-   - Define structure in `chrome.storage.local`:
-     ```json
-     { "allowlist": ["mycompany.com"], "blocklist": ["evil.tk"] }
-     ```
-
-2. **Check list before analysis**
-   - In `background.js`, check allowlist/blocklist before calling `analyzeUrlBackground()`
-   - Return early with `{ label: "safe", source: "allowlist" }` or `{ label: "phishing", source: "blocklist" }`
-
-3. **Add buttons to popup**
-   - In `popup.html`, add "✅ Always Trust Domain" and "🚫 Always Block Domain" buttons
-   - Show in the actions row after a result is rendered
-
-4. **Add management UI**
-   - Create a list view in the popup showing current allowlist/blocklist entries
-   - Add delete (×) button for each entry
-
-5. **Testing**
-   - Verify trusted domains skip analysis and show green immediately
-   - Verify blocked domains show red immediately regardless of ML score
+1. Store scan history  
+2. Compute analytics  
+3. Build charts  
+4. Display in Streamlit  
 
 ---
 
-### Pipeline for Feature 3: Analytics Dashboard
-
-1. **Create dashboard HTML file**
-   - Create `extension/dashboard.html` with full-page layout
-   - Import Chart.js from CDN
-
-2. **Load history data**
-   - Read from `chrome.storage.local` history array
-   - Calculate: total scans, phishing count, safe count, top domains
-
-3. **Build charts**
-   - Pie chart: Safe vs Phishing ratio
-   - Line chart: Scans per day over last 7 days
-   - Bar chart: Top 5 most-scanned domains
-
-4. **Register in manifest**
-   - Add `dashboard.html` to `web_accessible_resources` in `manifest.json`
-
-5. **Link from popup**
-   - Add "📊 Dashboard" button in `popup.html`
-   - On click: `chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') })`
-
-6. **Testing**
-   - Verify charts render correctly with empty history
-   - Test with 50+ history entries for performance
+## 5. Resume-Level Issues
 
 ---
 
-## 5. Good First Issues
-
-### Issue 1: Add "Copy URL" Button to History Items
-
-**Description:**
-The scan history panel shows past URLs but there's no way to copy them. Add a small copy button next to each history entry so users can quickly copy a URL they previously scanned.
-
-**Relevant Files:**
-- `extension/popup.js` — `showHistoryPanel()` function where history items are built
-- `extension/styles.css` — Style the copy button
-
-**Why it's beginner-friendly:**
-- Self-contained change in one function
-- No backend or API knowledge needed
-- Clear visual outcome with clipboard API
-- Great introduction to Chrome Extension DOM manipulation
-
-**Steps:**
-1. Add a copy icon button to each `.history-item` in `showHistoryPanel()`
-2. On click, call `navigator.clipboard.writeText(entry.url)`
-3. Change button icon to ✓ for 1.5 seconds as feedback
-4. Reset back to copy icon
+### 🟢 Beginner
 
 ---
 
-### Issue 2: Add Keyboard Shortcut to Open Extension
+#### Issue 1: Add Confidence Progress Bar
 
-**Description:**
-Users currently have to click the toolbar icon to open PhishGuard. Add a keyboard shortcut (e.g., `Ctrl+Shift+P`) so power users can open it instantly.
-
-**Relevant Files:**
-- `extension/manifest.json` — Add `commands` section
-
-**Why it's beginner-friendly:**
-- Single file change
-- Well-documented Chrome API
-- No JavaScript logic required
-- Clear definition of done
-
-**Steps:**
-1. Add `commands` section to `manifest.json`:
-   ```json
-   "commands": {
-     "_execute_action": {
-       "suggested_key": { "default": "Ctrl+Shift+P" },
-       "description": "Open PhishGuard"
-     }
-   }
-   ```
-2. Test the shortcut works in Chrome
-3. Document the shortcut in `README.md`
+- Use `st.progress()`  
+- Color-based risk display  
 
 ---
 
-### Issue 3: Add Export History as CSV
+#### Issue 2: Add URL Validation
 
-**Description:**
-Users want to download their scan history as a CSV file for reporting or analysis. Add an "Export CSV" button to the history panel.
-
-**Relevant Files:**
-- `extension/popup.js` — Add export function near `clearHistory()`
-- `extension/popup.html` — Add Export button next to Clear button
-
-**Why it's beginner-friendly:**
-- No backend needed — pure JavaScript file download
-- Small, well-scoped feature
-- Introduces working with Blob and URL APIs
-
-**Steps:**
-1. Add `exportHistoryCSV()` function in `popup.js`
-2. Convert history array to CSV string (url, label, confidence, timestamp)
-3. Create a Blob and trigger download with `URL.createObjectURL()`
-4. Add "⬇ Export" button in `popup.html` history panel header
+- Validate input URL  
+- Show error messages  
 
 ---
 
-### Issue 4: Improve Empty States
+#### Issue 3: Copy Result Button
 
-**Description:**
-When the extension opens on a `chrome://` page or `about:blank`, it shows nothing or crashes silently. Add a friendly empty state message explaining PhishGuard only works on real websites.
-
-**Relevant Files:**
-- `extension/popup.js` — `checkCurrentTab()` function
-- `extension/popup.html` — Add empty state HTML element
-- `extension/styles.css` — Style the empty state card
-
-**Why it's beginner-friendly:**
-- Pure UI/UX improvement
-- Safe — cannot break existing functionality
-- Good introduction to extension page lifecycle
-- Clear acceptance criteria
-
-**Steps:**
-1. In `checkCurrentTab()`, detect `chrome://`, `about:`, `file://` URLs
-2. Show a styled card: "PhishGuard doesn't run on browser internal pages"
-3. Add a shield icon and friendly message
-4. Style it consistently with the existing dark theme
+- Copy result to clipboard  
+- Improve UX  
 
 ---
 
-### Issue 5: Add Phishing Percentage to Extension Badge
-
-**Description:**
-Currently the badge shows `✓` or `!`. Enhance it to show the confidence percentage (e.g., `87%`) so users see the risk level at a glance without opening the popup.
-
-**Relevant Files:**
-- `extension/background.js` — `updateBadge()` and `setBadgeDanger()` functions
-
-**Why it's beginner-friendly:**
-- Change is isolated to 2–3 lines in `background.js`
-- No UI or API changes needed
-- Good introduction to the Chrome Badge API
-
-**Steps:**
-1. In `updateBadge()`, accept the confidence score as a parameter
-2. Use `chrome.action.setBadgeText({ text: pct + '%' })` for phishing sites
-3. Keep `✓` for safe sites (percentage not needed)
-4. Test that badge text doesn't overflow (keep under 4 characters)
+### 🟡 Intermediate
 
 ---
 
-### Issue 6: Write Unit Tests for Feature Extraction
+#### Issue 4: Export History as CSV
 
-**Description:**
-`feature_engineering.py` has no test coverage. Write pytest unit tests for each of the 23 URL features to ensure they extract correctly and regressions are caught early.
+- Convert history to CSV  
+- Add download button  
 
-**Relevant Files:**
-- `backend/feature_engineering.py` — Functions to test
-- `backend/tests/test_features.py` — Create this new file
+---
 
-**Why it's beginner-friendly:**
-- No new features to build — just testing existing code
-- Great way to learn the codebase thoroughly
-- pytest is beginner-friendly
-- Low risk of breaking anything
+#### Issue 5: Feature Importance Display
 
-**What to add:**
-```python
-def test_safe_url_has_https()
-def test_phishing_url_has_at_symbol()
-def test_ip_address_detection()
-def test_suspicious_tld_detection()
-def test_keyword_extraction()
-def test_entropy_calculation()
-```
+- Show top contributing features  
+- Improve explainability  
+
+---
+
+#### Issue 6: Batch URL Scanner
+
+- Upload CSV  
+- Process multiple URLs  
+
+---
+
+### 🔴 Advanced
+
+---
+
+#### Issue 7: PhishTank API Integration
+
+- Fetch real phishing data  
+- Combine with ML output  
+
+---
+
+#### Issue 8: Deploy Backend
+
+- Deploy FastAPI  
+- Connect to Streamlit  
+
+---
+
+#### Issue 9: Authentication System
+
+- User login/signup  
+- Personalized history  
+
+---
+
+#### Issue 10: Model Improvement Pipeline
+
+- Add real datasets  
+- Retrain and evaluate  
 
 ---
 
 ## 6. Contributor Notes
 
+---
+
 ### Getting Started
 
-**Prerequisites**
+#### Prerequisites
 
-Make sure you have the following installed:
-- Python 3.10+
-- Git
-- Google Chrome browser
-- pip (comes with Python)
-- Node.js (optional — not required for core features)
+- Python 3.10+  
+- Git  
 
 ---
 
 ### Setup Steps
 
-**1. Fork and Clone the Repository**
+#### 1. Clone Repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/phishguard.git
 cd phishguard
 ```
 
-**2. Set Up Backend**
+---
+
+#### 2. Setup Backend
 
 ```bash
 cd backend
 python -m venv venv
 
-# Activate virtual environment
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
+venv\Scripts\activate
 
 pip install -r requirements.txt
-python train_model.py           # Generates model.pkl
+python train_model.py
+
 uvicorn main:app --reload --port 8000
 ```
 
-**3. Set Up Streamlit Web App**
+---
+
+#### 3. Run Web App
 
 ```bash
 cd phishguard-web
 pip install streamlit
+
 streamlit run streamlit_app.py
-# Opens at http://localhost:8501
 ```
-
-**4. Load Chrome Extension**
-
-1. Open Chrome → `chrome://extensions/`
-2. Enable **Developer Mode** (top right toggle)
-3. Click **"Load unpacked"**
-4. Select the `extension/` folder
-5. Pin PhishGuard to your toolbar
-
----
-
-### Important Libraries & Tools
-
-| Tool | Purpose | Documentation |
-|------|---------|---------------|
-| FastAPI | REST API framework | https://fastapi.tiangolo.com |
-| Streamlit | Web app framework | https://docs.streamlit.io |
-| scikit-learn | ML model training | https://scikit-learn.org |
-| Uvicorn | ASGI server for FastAPI | https://www.uvicorn.org |
-| NumPy | Numeric feature arrays | https://numpy.org/doc |
-| Pandas | Dataset handling | https://pandas.pydata.org/docs |
-| pytest | Unit testing | https://docs.pytest.org |
-| Chrome MV3 APIs | Extension APIs | https://developer.chrome.com/docs/extensions/mv3 |
-
----
-
-### Tips for Beginners
-
-**Start Small**
-Pick a Good First Issue above. They're scoped so you can make a real contribution without needing to understand the entire codebase.
-
-**Read Existing Code First**
-Before adding anything, read through `popup.js` and `feature_engineering.py` — they contain most of the core logic and are well-commented.
-
-**Test the Extension Locally**
-After every change to the extension, go to `chrome://extensions/` and click the refresh (↻) icon on PhishGuard to reload it.
-
-**Follow Code Style**
-- Python: follow PEP8, use descriptive variable names
-- JavaScript: use `const`/`let`, arrow functions, async/await
-- Add comments for any non-obvious logic
-
-**Commit Message Format**
-```
-type: brief description
-
-- Detail 1
-- Detail 2
-```
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ---
 
 ### Development Workflow
 
 ```bash
-# Create a feature branch
-git checkout -b feat/your-feature-name
+git checkout -b feat/your-feature
 
-# Make your changes
-
-# Test the extension by reloading it in chrome://extensions/
-# Test the backend with: uvicorn main:app --reload
-# Test the web app with: streamlit run streamlit_app.py
-
-# Commit
 git add .
-git commit -m "feat: add domain age feature to detection"
-
-# Push
-git push origin feat/your-feature-name
-
-# Open Pull Request on GitHub
+git commit -m "feat: your feature"
+git push origin feat/your-feature
 ```
 
 ---
 
-### Pull Request Guidelines
-
-- Link the related issue (e.g., `Closes #12`)
-- Describe what changed and why
-- Add screenshots for any UI changes
-- Make sure the extension still loads without errors in Chrome
-- Make sure `uvicorn main:app` still starts without errors
-
----
-
-### Common Issues & Solutions
+### Common Issues
 
 | Issue | Solution |
-|-------|----------|
-| `model.pkl` not found | Run `python train_model.py` inside `backend/` |
-| Extension not updating | Go to `chrome://extensions/` and click the ↻ refresh icon |
-| Port 8000 already in use | Run `uvicorn main:app --port 8001` and update `CONFIG.API_URL` in `popup.js` |
-| Streamlit app not found | Make sure you're running from inside the `phishguard-web/` folder |
-| `pip install` fails | Make sure your virtual environment is activated first |
-| CORS error in browser | The FastAPI backend must be running — check `http://127.0.0.1:8000/health` |
+|------|---------|
+| model.pkl missing | Run train_model.py |
+| Backend not running | Start FastAPI |
+| App not loading | Check Streamlit path |
+| CORS error | Ensure backend is running |
 
 ---
 
-*PhishGuard — Built for education, security awareness, and open-source learning.*
-*Contributions of all sizes are welcome. 🛡️*
+## 📜 License
+
+MIT License
+
+---
+
+## 🙌 Final Note
+
+PhishGuard is built for **security awareness, machine learning, and real-world application development**.
