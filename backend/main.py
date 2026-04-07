@@ -93,6 +93,19 @@ def predict(req: URLRequest):
     if not url:
         raise HTTPException(status_code=422, detail="URL cannot be empty")
 
+    # Basic URL validation
+    import re
+    url_pattern = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    if not url_pattern.match(url):
+        raise HTTPException(status_code=400, detail="Invalid URL format")
+
     # ── Extract numeric feature vector ────────────────────────────────────
     try:
         feature_vector, raw_features = extract_features(url)
