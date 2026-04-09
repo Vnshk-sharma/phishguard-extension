@@ -340,18 +340,29 @@ if analyze and url_input.strip():
     m4.metric("KEYWORDS",    features['keyword_count'])
 
     # ── CONFIDENCE BAR ─────────────────────────────────────────
-    st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-top:16px;margin-bottom:6px;'>CONFIDENCE SCORE</p>", unsafe_allow_html=True)
-    bar_color = "#ef4444" if pct >= 70 else "#f59e0b" if pct >= 45 else "#10b981"
+    if pct >= 70:
+        risk_label = "High Risk"
+        risk_color = "#ef4444"
+    elif pct >= 45:
+        risk_label = "Moderate Risk"
+        risk_color = "#f59e0b"
+    else:
+        risk_label = "Low Risk"
+        risk_color = "#10b981"
+
     st.markdown(f"""
-    <div style="background:#161b26;border-radius:99px;height:8px;overflow:hidden;margin-bottom:4px;">
-      <div style="width:{pct}%;height:100%;background:{bar_color};
-                  border-radius:99px;transition:width 0.8s ease;"></div>
-    </div>
-    <p style="font-size:10px;color:#454d66;">
-      {'High risk — ' if pct >= 70 else 'Moderate risk — ' if pct >= 45 else 'Low risk — '}
-      model is {pct}% confident in this prediction
+    <p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-top:16px;margin-bottom:6px;'>
+      CONFIDENCE SCORE &nbsp;·&nbsp;
+      <span style='color:{risk_color};font-weight:600;'>● {risk_label}</span>
     </p>
+    <style>
+    div[data-testid="stProgress"] > div > div > div > div {{
+        background-color: {risk_color} !important;
+    }}
+    </style>
     """, unsafe_allow_html=True)
+    st.progress(confidence)
+    st.markdown(f"<p style='font-size:10px;color:#454d66;margin-top:4px;'>Model is {pct}% confident in this prediction</p>", unsafe_allow_html=True)
 
     st.divider()
 
