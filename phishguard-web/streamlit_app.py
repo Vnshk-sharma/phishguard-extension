@@ -12,6 +12,9 @@ import pandas as pd
 import io
 from urllib.parse import urlparse, parse_qs
 
+# Analytics & Reputation
+from analytics_manager import init_db as init_analytics_db, log_scan, get_total_scans, get_scan_ratio, get_scans_over_time, get_top_risky_domains
+
 # ══════════════════════════════════════════════════════════════
 # PAGE CONFIG
 # ══════════════════════════════════════════════════════════════
@@ -239,11 +242,102 @@ def _entropy(text: str) -> float:
 if 'history' not in st.session_state:
     st.session_state.history = []
 
+# Initialize analytics database
+init_analytics_db()
+
+# Sidebar navigation
+st.sidebar.markdown("### 📊 Navigation")
+page = st.sidebar.radio(
+    "Go to",
+    ["🔍 Scanner", "📈 Analytics Dashboard"],
+    label_visibility="collapsed"
+)
 
 # ══════════════════════════════════════════════════════════════
-# HEADER
+# ANALYTICS DASHBOARD PAGE
 # ══════════════════════════════════════════════════════════════
-st.markdown("""
+if page == "📈 Analytics Dashboard":
+    st.markdown("""
+    <div style="text-align:center; padding: 20px 0 10px;">
+      <div style="display:inline-flex;align-items:center;gap:10px;
+                  background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);
+                  border-radius:99px;padding:6px 18px;margin-bottom:20px;
+                  font-size:11px;letter-spacing:0.1em;color:#6366f1;">
+        📊 ANALYTICS & INSIGHTS
+      </div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:clamp(32px,6vw,56px);
+                 font-weight:800;letter-spacing:-0.03em;margin:0;line-height:1.1;">
+        📈 Analytics Dashboard
+      </h1>
+      <p style="color:#7a8099;font-size:14px;margin-top:12px;max-width:480px;margin-inline:auto;">
+        Track scan statistics, trends, and identify risky domains over time.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # ── KPI METRICS ────────────────────────────────────────────
+    st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-bottom:12px;'>▸ KEY PERFORMANCE INDICATORS</p>", unsafe_allow_html=True)
+
+    total_scans = get_total_scans()
+    scan_ratio = get_scan_ratio()
+    phishing_count = scan_ratio["phishing"]
+    safe_count = scan_ratio["safe"]
+
+    # Calculate safe ratio percentage
+    safe_ratio = (safe_count / total_scans * 100) if total_scans > 0 else 0
+    phishing_ratio = (phishing_count / total_scans * 100) if total_scans > 0 else 0
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🔄 TOTAL SCANS", total_scans)
+    col2.metric("⚠️ PHISHING DETECTED", phishing_count)
+    col3.metric("✅ SAFE RATIO", f"{safe_ratio:.1f}%")
+
+    st.divider()
+
+    # ── TRENDS OVER TIME ───────────────────────────────────────
+    st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-bottom:12px;'>▸ TRENDS OVER TIME</p>", unsafe_allow_html=True)
+
+    df_trends = get_scans_over_time()
+    if not df_trends.empty:
+        # Prepare data for chart
+        chart_data = df_trends.set_index("date")[["safe_count", "phishing_count"]]
+        chart_data.columns = ["Safe", "Phishing"]
+        st.bar_chart(chart_data, use_container_width=True)
+    else:
+        st.info("No scan data available yet. Start scanning URLs to see trends.", icon="ℹ️")
+
+    st.divider()
+
+    # ── TOP RISKY DOMAINS ──────────────────────────────────────
+    st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-bottom:12px;'>▸ TOP RISKY DOMAINS</p>", unsafe_allow_html=True)
+
+    top_domains = get_top_risky_domains(10)
+    if top_domains:
+        df_domains = pd.DataFrame(top_domains)
+        df_domains.columns = ["Domain", "Phishing Count"]
+        st.dataframe(df_domains, use_container_width=True, hide_index=True)
+    else:
+        st.info("No phishing data available yet. Domains flagged as phishing will appear here.", icon="ℹ️")
+
+    st.divider()
+
+    # ── SUMMARY STATS ───────────────────────────────────────────
+    st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-bottom:12px;'>▸ SUMMARY STATISTICS</p>", unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Safe Count", safe_count)
+    c2.metric("Phishing Count", phishing_count)
+    c3.metric("Phishing Rate", f"{phishing_ratio:.1f}%")
+    c4.metric("Data Points", total_scans)
+
+
+# ══════════════════════════════════════════════════════════════
+# SCANNER PAGE (DEFAULT)
+# ══════════════════════════════════════════════════════════════
+elif page == "🔍 Scanner":
+    st.markdown("""
 <div style="text-align:center; padding: 20px 0 10px;">
   <div style="display:inline-flex;align-items:center;gap:10px;
               background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);
@@ -306,6 +400,15 @@ if analyze and url_input.strip():
         confidence  = score / 100
         label       = 'phishing' if score >= 40 else 'safe'
         explanation = build_explanation(label, features)
+
+        # Log scan to analytics database
+        try:
+            parsed = urlparse(url if '://' in url else 'http://' + url)
+            domain = (parsed.hostname or '').lower()
+            if domain:
+                log_scan(url, domain, label == 'phishing')
+        except Exception:
+            pass  # Silently fail if logging doesn't work
 
     # Save to history
     st.session_state.history.insert(0, {
