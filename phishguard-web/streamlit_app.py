@@ -5,6 +5,7 @@ Deploy:       https://streamlit.io/cloud
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import re
 import math
 import time
@@ -509,6 +510,29 @@ if analyze and url_input.strip():
       {explanation}
     </div>
     """, unsafe_allow_html=True)
+
+    # ── COPY RESULT BUTTON ─────────────────────────────────────
+    result_text = f"PhishGuard Result\\nURL: {url}\\nVerdict: {'PHISHING' if is_phishing else 'SAFE'}\\nConfidence: {pct}%\\nRisk Score: {score}/100"
+    components.html(f"""
+        <button id="copyBtn"
+            onclick="navigator.clipboard.writeText(`{result_text}`).then(() => {{
+                    var btn = document.getElementById('copyBtn');
+                    btn.innerText = 'Copied!';
+                    btn.style.background = '#0f1219';
+                    btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                    setTimeout(() => {{
+                        btn.innerText = 'Copy Result to Clipboard';
+                        btn.style.background = '#6366f1';
+                        btn.style.borderColor = '#6366f1';
+                    }}, 2000);
+                }})"
+            style="background:#6366f1;color:white;border:1px solid #6366f1;
+                   border-radius:8px;padding:10px 20px;font-family:'IBM Plex Mono',monospace;
+                   font-size:13px;font-weight:600;cursor:pointer;width:100%;
+                   transition:background 0.2s,border-color 0.2s;">
+            Copy Result to Clipboard
+        </button>
+    """, height=55)
 
     # ── CSV DOWNLOAD BUTTON (main page) ───────────────────────
     if st.session_state.history:
