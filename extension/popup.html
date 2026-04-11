@@ -49,6 +49,15 @@
       <p class="url-text" id="currentUrl">Loading…</p>
     </div>
 
+    <!-- Manual Scan Input -->
+    <div class="manual-scan">
+      <div class="input-group">
+        <input type="text" id="manualUrlInput" placeholder="Enter URL to scan manually..." />
+        <button id="manualScanBtn" class="btn btn-primary">Scan</button>
+      </div>
+      <p id="urlError" class="error-text hidden">Please enter a valid URL.</p>
+    </div>
+
     <!-- ── LOADING STATE ── -->
     <div id="loadingState" class="state-card loading-card">
       <div class="spinner-ring">

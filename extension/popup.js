@@ -43,6 +43,9 @@ const el = {
   historyList:      $('historyList'),
   historyEmpty:     $('historyEmpty'),
   footerStatus:     $('footerStatus'),
+  manualUrlInput:   $('manualUrlInput'),
+  manualScanBtn:    $('manualScanBtn'),
+  urlError:         $('urlError'),
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -86,6 +89,21 @@ function bindEvents() {
   // Re-check
   el.recheckBtn.addEventListener('click', () => checkCurrentTab(true));
 
+  // Manual Scan
+  el.manualScanBtn.addEventListener('click', () => {
+    const url = el.manualUrlInput.value.trim();
+    if (validateAndScan(url)) {
+      el.urlError.classList.add('hidden');
+    } else {
+      el.urlError.classList.remove('hidden');
+    }
+  });
+
+  // Allow Enter key in manual input
+  el.manualUrlInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') el.manualScanBtn.click();
+  });
+
   // Inject warning banner
   el.warnBtn.addEventListener('click', injectWarningBanner);
 
@@ -105,31 +123,14 @@ async function checkCurrentTab(force = false) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) return;
 
-  currentTabUrl = tab.url;
-  el.currentUrl.textContent = shortenUrl(currentTabUrl);
-
-  // Check cache (skip API call if we have a recent result and not forcing)
-  if (!force) {
-    const cached = await getCachedResult(currentTabUrl);
-    if (cached) {
-      renderResult(cached);
-      return;
-    }
+  // Don't scan internal chrome:// or extension pages
+  if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+    el.currentUrl.textContent = 'Internal Page';
+    showState('safe');
+    return;
   }
 
-  showState('loading');
-  hideResultSections();
-
-  const result = await analyzeUrl(currentTabUrl);
-  lastResult = result;
-
-  // Cache result
-  await cacheResult(currentTabUrl, result);
-
-  // Save to history
-  await saveToHistory(currentTabUrl, result);
-
-  renderResult(result);
+  performScan(tab.url, force);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -485,6 +486,61 @@ async function showHistoryPanel() {
 function showMainPanel() {
   el.historyView.classList.add('hidden');
   el.mainView.classList.remove('hidden');
+}
+
+/**
+ * Validates a URL and starts scanning if valid
+ * @param {string} url 
+ * @returns {boolean}
+ */
+function validateAndScan(url) {
+  if (!url) return false;
+
+  // Add protocol if missing
+  let targetUrl = url;
+  if (!/^https?:\/\//i.test(targetUrl)) {
+    targetUrl = 'http://' + targetUrl;
+  }
+
+  try {
+    const parsed = new URL(targetUrl);
+    // Basic validation: must have a hostname and a TLD-like structure
+    if (!parsed.hostname || !parsed.hostname.includes('.')) {
+      return false;
+    }
+    
+    // Proceed with scan
+    performScan(targetUrl);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function performScan(url, force = false) {
+  if (!isEnabled) { showState('disabled'); return; }
+
+  currentTabUrl = url;
+  el.currentUrl.textContent = shortenUrl(currentTabUrl);
+
+  // Check cache
+  if (!force) {
+    const cached = await getCachedResult(currentTabUrl);
+    if (cached) {
+      renderResult(cached);
+      return;
+    }
+  }
+
+  showState('loading');
+  hideResultSections();
+
+  const result = await analyzeUrl(currentTabUrl);
+  lastResult = result;
+
+  await cacheResult(currentTabUrl, result);
+  await saveToHistory(currentTabUrl, result);
+  renderResult(result);
 }
 
 async function clearHistory() {
