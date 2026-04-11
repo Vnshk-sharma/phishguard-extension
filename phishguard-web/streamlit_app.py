@@ -295,6 +295,55 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
+# BATCH URL SCANNER
+# ══════════════════════════════════════════════════════════════
+st.divider()
+st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-bottom:8px;'>▸ BATCH URL SCANNER</p>", unsafe_allow_html=True)
+uploaded_file = st.file_uploader(
+    "📄 Upload a CSV file with a `url` column to scan multiple URLs at once",
+    type=["csv"],
+)
+if uploaded_file:
+    try:
+        df = pd.read_csv(uploaded_file)
+        if 'url' not in df.columns:
+            st.error("CSV must have a column named 'url'")
+        else:
+            st.markdown(f"<p style='font-size:11px;color:#7a8099;margin-top:6px;'>Found {len(df)} URLs. Click below to analyze.</p>", unsafe_allow_html=True)
+            if st.button("🔍 Analyze All URLs", use_container_width=True, key="batch_analyze"):
+                results = []
+                progress = st.progress(0)
+                for i, url in enumerate(df['url'].dropna()):
+                    url        = str(url).strip()
+                    features   = extract_features(url)
+                    score      = score_url(features)
+                    confidence = score / 100
+                    label      = 'phishing' if score >= 40 else 'safe'
+                    results.append({
+                        'url':        url,
+                        'verdict':    label.upper(),
+                        'confidence': f"{round(confidence * 100)}%",
+                        'score':      f"{score}/100",
+                    })
+                    progress.progress((i + 1) / len(df))
+
+                results_df = pd.DataFrame(results)
+                st.dataframe(results_df, use_container_width=True)
+
+                csv_buffer = io.StringIO()
+                results_df.to_csv(csv_buffer, index=False)
+                st.download_button(
+                    label="⬇️ Download Results as CSV",
+                    data=csv_buffer.getvalue(),
+                    file_name="phishguard_batch_results.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+st.divider()
+
+# ══════════════════════════════════════════════════════════════
 # ANALYSIS
 # ══════════════════════════════════════════════════════════════
 if analyze and url_input.strip():
