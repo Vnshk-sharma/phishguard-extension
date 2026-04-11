@@ -13,8 +13,6 @@ import pandas as pd
 import io
 from urllib.parse import urlparse, parse_qs
 
-from reputation_manager import init_db, extract_domain, update_domain_reputation, get_domain_reputation
-
 # ══════════════════════════════════════════════════════════════
 # PAGE CONFIG
 # ══════════════════════════════════════════════════════════════
@@ -242,9 +240,6 @@ def _entropy(text: str) -> float:
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# Initialize domain reputation database
-init_db()
-
 
 # ══════════════════════════════════════════════════════════════
 # HEADER
@@ -313,15 +308,6 @@ if analyze and url_input.strip():
         label       = 'phishing' if score >= 40 else 'safe'
         explanation = build_explanation(label, features)
 
-        # Update domain reputation tracking
-        try:
-            domain = extract_domain(url)
-            is_phishing = label == 'phishing'
-            update_domain_reputation(domain, is_phishing)
-            domain_reputation = get_domain_reputation(domain)
-        except Exception:
-            domain_reputation = None
-
     # Save to history
     st.session_state.history.insert(0, {
         'url':        url,
@@ -366,6 +352,8 @@ if analyze and url_input.strip():
               <div style="font-size:11px;color:#7a8099;margin-top:3px;word-break:break-all;">{url}</div>
             </div>
           </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ── METRICS ROW ────────────────────────────────────────────
     m1, m2, m3, m4 = st.columns(4)
@@ -373,44 +361,6 @@ if analyze and url_input.strip():
     m2.metric("RISK SCORE",  f"{score}/100")
     m3.metric("VERDICT",     "⚠️ PHISH" if is_phishing else "✅ SAFE")
     m4.metric("KEYWORDS",    features['keyword_count'])
-
-    # ── DOMAIN REPUTATION HISTORY ─────────────────────────────────
-    if domain_reputation:
-        st.divider()
-        st.markdown("<p style='font-size:10px;letter-spacing:0.1em;color:#454d66;margin-bottom:12px;'>▸ DOMAIN REPUTATION HISTORY</p>", unsafe_allow_html=True)
-
-        rep_score = domain_reputation['risk_score']
-        rep_checks = domain_reputation['total_checks']
-        rep_flagged = domain_reputation['flagged_count']
-        rep_domain = domain_reputation['domain']
-
-        # Determine color based on risk score
-        if rep_score > 50:
-            rep_color = "#ef4444"
-            rep_status = "High Risk"
-        elif rep_score > 10:
-            rep_color = "#f59e0b"
-            rep_status = "Medium Risk"
-        else:
-            rep_color = "#10b981"
-            rep_status = "Low Risk"
-
-        # Display metrics
-        r1, r2, r3 = st.columns(3)
-        r1.metric("DOMAIN", rep_domain)
-        r2.metric("REPUTATION RISK", f"{rep_score:.1f}%", delta=rep_status, delta_color="off")
-        r3.metric("TOTAL CHECKS", rep_checks)
-
-        # Flagged count sub-text
-        st.markdown(f"""
-        <p style='font-size:11px;color:#7a8099;margin-top:4px;margin-bottom:12px;'>
-          <span style='color:{rep_color};font-weight:600;'>● Flagged {rep_flagged} times out of {rep_checks} total checks</span>
-        </p>
-        """, unsafe_allow_html=True)
-
-        # Warning for high-risk domains
-        if rep_score > 50:
-            st.warning(f"⚠️ This domain has been frequently flagged as phishing ({rep_score:.0f}% risk score). Exercise extreme caution.", icon="⚠️")
 
     # ── CONFIDENCE BAR ─────────────────────────────────────────
     if pct >= 70:
