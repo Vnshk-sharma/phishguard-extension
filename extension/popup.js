@@ -467,7 +467,8 @@ async function showHistoryPanel() {
 
     const item = document.createElement('div');
     item.className = `history-item ${isPhish ? 'hist-phish' : 'hist-safe'}`;
-    item.innerHTML = `
+    item.innerHTML = 
+           `   
       <div class="hist-dot ${isPhish ? 'phishing' : 'safe'}"></div>
       <div class="hist-info">
         <div class="hist-url">${escHtml(shortenUrl(entry.url))}</div>
@@ -478,10 +479,23 @@ async function showHistoryPanel() {
       </div>
       <div class="hist-conf">${pct}%</div>
     `;
-    el.historyList.appendChild(item);
-  });
-}
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "copy-btn";
+        copyBtn.textContent = "📋";
 
+        copyBtn.addEventListener("click", async () => {
+          await navigator.clipboard.writeText(entry.url);
+          copyBtn.textContent = "✅";
+
+          setTimeout(() => {
+            copyBtn.textContent = "📋";
+          }, 1500);
+        });
+
+        item.appendChild(copyBtn);
+        el.historyList.appendChild(item);
+      });
+    }
 function showMainPanel() {
   el.historyView.classList.add('hidden');
   el.mainView.classList.remove('hidden');
